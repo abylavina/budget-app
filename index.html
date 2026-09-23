@@ -522,7 +522,7 @@
     var cardsDebt = cards.reduce(function(s,c){return s+c._current;},0);
     document.getElementById('cardsSummary').textContent = fmt(cardsDebt);
     var cash = d.startBalance + income - expense;
-    var balance = cash + cardsDebt;
+    var balance = cash; // главный баланс — только реальные деньги, без учёта долга по картам
 
     document.getElementById('monthLabel').textContent = d.month;
     document.getElementById('balanceValue').innerHTML = fmt(balance).replace(' $', ' <sup>$</sup>');
