@@ -472,7 +472,32 @@
   var tg = window.Telegram && window.Telegram.WebApp;
   if (tg) { tg.ready(); tg.expand(); }
 
+  var API_URL = 'https://script.google.com/macros/s/AKfycbyuWbbs33ByfJ2n1DEHRahJIQq8dK52BajGD7ZzSsrln7048XzQgOKr9B8e7jsadx8Q/exec';
+
+  var CATEGORIES = {
+    income: [
+      { id: 'salary', label: 'Зарплата', icon: '💼' },
+      { id: 'freelance', label: 'LLC', icon: '🧾' },
+      { id: 'other_income', label: 'Прочее', icon: '🎁' }
+    ],
+    expense: [
+      { id: 'food', label: 'Еда', icon: '🍎' },
+      { id: 'rent', label: 'Аренда', icon: '🔑' },
+      { id: 'utilities', label: 'Коммунальные', icon: '🏠' },
+      { id: 'clothes', label: 'Одежда', icon: '👕' },
+      { id: 'auto', label: 'Авто', icon: '🚗' },
+      { id: 'health', label: 'Здоровье', icon: '💊' },
+      { id: 'education', label: 'Образование', icon: '🎓' },
+      { id: 'fun', label: 'Развлечения', icon: '🎉' },
+      { id: 'other_expense', label: 'Прочее', icon: '🛍️' }
+    ]
+  };
+
   var state = { data: null, type: null, selectedCat: null };
+
+  function notifyError(msg){
+    if (tg && tg.showAlert) { tg.showAlert(msg); } else { alert(msg); }
+  }
 
   function fmt(n){
     return new Intl.NumberFormat('ru-RU').format(Math.round(n)) + ' $';
@@ -660,21 +685,47 @@
 
   document.getElementById('submitBtn').addEventListener('click', function(){
     var amount = parseFloat(document.getElementById('amountInput').value);
+    var btn = document.getElementById('submitBtn');
+    var originalLabel = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Сохраняю…';
 
-    if (state.type === 'start-balance-edit'){
-      state.data.startBalance = amount;
-      render();
+    function done(ok, errMsg){
+      btn.disabled = false;
+      btn.textContent = originalLabel;
+      if (!ok) { notifyError(errMsg || 'Не получилось сохранить. Проверь подключение и попробуй ещё раз.'); return; }
       closeSheet();
       if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+    }
+
+    function post(payload){
+      return fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      }).then(function(r){ if (!r.ok) throw new Error('bad response'); return r.json(); });
+    }
+
+    if (state.type === 'start-balance-edit'){
+      post({ action: 'updateStartBalance', value: amount })
+        .then(function(){
+          state.data.startBalance = amount;
+          render();
+          done(true);
+        })
+        .catch(function(err){ console.error(err); done(false); });
       return;
     }
 
     if (state.type === 'balance-edit'){
-      var card = (state.data.creditCards || []).find(function(c){ return c.id === state.editingCardId; });
-      if (card) card.balance = amount;
-      render();
-      closeSheet();
-      if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+      post({ action: 'updateCardBalance', cardId: state.editingCardId, balance: amount })
+        .then(function(){
+          var card = (state.data.creditCards || []).find(function(c){ return c.id === state.editingCardId; });
+          if (card) card.balance = amount;
+          render();
+          done(true);
+        })
+        .catch(function(err){ console.error(err); done(false); });
       return;
     }
 
@@ -686,10 +737,14 @@
     } else {
       newTx.category = state.selectedCat;
     }
-    state.data.transactions.push(newTx);
-    render();
-    closeSheet();
-    if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+
+    post({ action: 'addTransaction', transaction: newTx })
+      .then(function(){
+        state.data.transactions.push(newTx);
+        render();
+        done(true);
+      })
+      .catch(function(err){ console.error(err); done(false); });
   });
 
   function showPlaceholder(){
@@ -698,9 +753,13 @@
     document.querySelectorAll('.stats, .section-title, .tx-list').forEach(function(el){ el.style.display='none'; });
   }
 
-  fetch('data.json?v=' + Date.now())
+  fetch(API_URL + '?v=' + Date.now())
     .then(function(r){ if(!r.ok) throw new Error('bad response'); return r.json(); })
-    .then(function(json){ state.data = json; render(); })
+    .then(function(json){
+      json.categories = CATEGORIES;
+      state.data = json;
+      render();
+    })
     .catch(function(err){ console.error(err); showPlaceholder(); });
 </script>
 
