@@ -1,0 +1,38 @@
+{
+  "startBalance": 3200,
+  "month": "Сентябрь 2026",
+  "categories": {
+    "income": [
+      { "id": "salary", "label": "Зарплата", "icon": "💼" },
+      { "id": "freelance", "label": "LLC", "icon": "🧾" },
+      { "id": "other_income", "label": "Прочее", "icon": "🎁" }
+    ],
+    "expense": [
+      { "id": "food", "label": "Еда", "icon": "🍎" },
+      { "id": "rent", "label": "Аренда", "icon": "🔑" },
+      { "id": "utilities", "label": "Коммунальные", "icon": "🏠" },
+      { "id": "clothes", "label": "Одежда", "icon": "👕" },
+      { "id": "auto", "label": "Авто", "icon": "🚗" },
+      { "id": "health", "label": "Здоровье", "icon": "💊" },
+      { "id": "education", "label": "Образование", "icon": "🎓" },
+      { "id": "fun", "label": "Развлечения", "icon": "🎉" },
+      { "id": "other_expense", "label": "Прочее", "icon": "🛍️" }
+    ]
+  },
+  "creditCards": [
+    { "id": "chase_freedom", "name": "Chase Freedom", "balance": 0 },
+    { "id": "chase_slate", "name": "Chase Slate", "balance": 0 },
+    { "id": "discover", "name": "Discover", "balance": 0 },
+    { "id": "apple", "name": "Apple Card", "balance": 0 },
+    { "id": "best_buy", "name": "Best Buy", "balance": 0 },
+    { "id": "tjmaxx", "name": "TJ Maxx", "balance": 0 }
+  ],
+  "transactions": [
+    { "id": 1, "type": "income", "category": "salary", "amount": 4200, "note": "Зарплата за месяц", "date": "2026-09-01" },
+    { "id": 2, "type": "expense", "category": "utilities", "amount": 310, "note": "ComEd + Nicor", "date": "2026-09-03" },
+      { "id": 6, "type": "expense", "category": "rent", "amount": 1450, "note": "Аренда — сентябрь", "date": "2026-09-01" },
+    { "id": 3, "type": "expense", "category": "food", "amount": 245, "note": "Costco", "date": "2026-09-07" },
+    { "id": 4, "type": "expense", "category": "auto", "amount": 90, "note": "Бензин", "date": "2026-09-12" },
+    { "id": 5, "type": "income", "category": "freelance", "amount": 350, "note": "Проект для клиента", "date": "2026-09-15" }
+  ]
+}
