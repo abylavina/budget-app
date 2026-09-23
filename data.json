@@ -33,6 +33,7 @@
       { "id": 6, "type": "expense", "category": "rent", "amount": 1450, "note": "Аренда — сентябрь", "date": "2026-09-01" },
     { "id": 3, "type": "expense", "category": "food", "amount": 245, "note": "Costco", "date": "2026-09-07" },
     { "id": 4, "type": "expense", "category": "auto", "amount": 90, "note": "Бензин", "date": "2026-09-12" },
-    { "id": 5, "type": "income", "category": "freelance", "amount": 350, "note": "Проект для клиента", "date": "2026-09-15" }
+    { "id": 5, "type": "income", "category": "freelance", "amount": 350, "note": "Проект для клиента", "date": "2026-09-15" },
+    { "id": 7, "type": "expense", "category": "food", "amount": 250, "note": "Aldi", "date": "2026-09-23" }
   ]
 }
