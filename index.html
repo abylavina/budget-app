@@ -49,6 +49,13 @@
     font-weight:400;
     margin-bottom:2px;
   }
+  .balance{cursor:pointer;}
+  .balance:active{opacity:.6;}
+  .balance-hint{
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-top:6px;
+  }
   .balance{
     font-size:48px;
     font-weight:500;
@@ -400,6 +407,7 @@
   <div class="month" id="monthLabel">—</div>
   <div class="balance-label">Баланс сейчас</div>
   <div class="balance" id="balanceValue">—</div>
+  <div class="balance-hint">Нажми на цифру, чтобы задать начальный баланс</div>
 </header>
 
 <div class="stats">
@@ -606,6 +614,20 @@
     document.getElementById('sheetOverlay').classList.add('open');
   }
 
+  function openStartBalanceSheet(){
+    state.type = 'start-balance-edit';
+
+    document.getElementById('sheetTitle').textContent = 'Начальный баланс';
+    document.getElementById('catField').style.display = 'none';
+    document.getElementById('noteField').style.display = 'none';
+    document.getElementById('dateField').style.display = 'none';
+    document.getElementById('amountInput').value = state.data.startBalance;
+    document.getElementById('submitBtn').textContent = 'Сохранить';
+
+    checkValid();
+    document.getElementById('sheetOverlay').classList.add('open');
+  }
+
   function closeSheet(){
     document.getElementById('sheetOverlay').classList.remove('open');
   }
@@ -613,7 +635,7 @@
   function checkValid(){
     var amount = parseFloat(document.getElementById('amountInput').value);
     var valid;
-    if (state.type === 'balance-edit'){
+    if (state.type === 'balance-edit' || state.type === 'start-balance-edit'){
       valid = !isNaN(amount);
     } else {
       valid = amount > 0 && state.selectedCat;
@@ -624,6 +646,8 @@
   document.getElementById('cardsToggle').addEventListener('click', function(){
     document.getElementById('cardsSection').classList.toggle('open');
   });
+
+  document.getElementById('balanceValue').addEventListener('click', openStartBalanceSheet);
 
   document.getElementById('amountInput').addEventListener('input', checkValid);
   document.getElementById('btnIncome').addEventListener('click', function(){ openSheet('income'); });
@@ -636,6 +660,14 @@
 
   document.getElementById('submitBtn').addEventListener('click', function(){
     var amount = parseFloat(document.getElementById('amountInput').value);
+
+    if (state.type === 'start-balance-edit'){
+      state.data.startBalance = amount;
+      render();
+      closeSheet();
+      if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+      return;
+    }
 
     if (state.type === 'balance-edit'){
       var card = (state.data.creditCards || []).find(function(c){ return c.id === state.editingCardId; });
