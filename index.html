@@ -454,6 +454,11 @@
       <div class="cat-grid" id="catGrid"></div>
     </div>
 
+    <div id="payField">
+      <div class="field-label">Чем оплачено</div>
+      <div class="cat-grid" id="payGrid"></div>
+    </div>
+
     <div id="noteField">
       <div class="field-label">Назначение платежа</div>
       <input type="text" class="text-input" id="noteInput" placeholder="Например: Costco">
@@ -508,20 +513,29 @@
     var cards = d.creditCards || [];
     var income = d.transactions.filter(function(t){return t.type==='income';})
                   .reduce(function(s,t){return s+t.amount;},0);
-    var expense = d.transactions.filter(function(t){return t.type==='expense';})
-                  .reduce(function(s,t){return s+t.amount;},0);
+    var expenseAll = d.transactions.filter(function(t){return t.type==='expense';});
+    var expense = expenseAll.reduce(function(s,t){return s+t.amount;},0);
+    var cashExpense = expenseAll
+      .filter(function(t){ return !t.paidWith || t.paidWith === 'cash'; })
+      .reduce(function(s,t){return s+t.amount;},0);
     var transfers = d.transactions.filter(function(t){return t.type==='transfer';});
 
-    // текущий баланс карты = базовый долг + все погашения по этой карте
+    // текущий баланс карты = базовый долг + погашения по карте − покупки, оплаченные этой картой
     var cardById = {};
     cards.forEach(function(c){ cardById[c.id] = c; c._current = c.balance; });
     transfers.forEach(function(t){
       if (cardById[t.cardId]) cardById[t.cardId]._current += t.amount;
     });
+    expenseAll.forEach(function(t){
+      if (t.paidWith && t.paidWith !== 'cash' && cardById[t.paidWith]) {
+        cardById[t.paidWith]._current -= t.amount;
+      }
+    });
 
     var cardsDebt = cards.reduce(function(s,c){return s+c._current;},0);
     document.getElementById('cardsSummary').textContent = fmt(cardsDebt);
-    var cash = d.startBalance + income - expense;
+    var transfersTotal = transfers.reduce(function(s,t){return s+t.amount;},0);
+    var cash = d.startBalance + income - cashExpense - transfersTotal; // тратим наличные/дебет сразу, картой — только при погашении
     var balance = cash; // главный баланс — только реальные деньги, без учёта долга по картам
 
     document.getElementById('monthLabel').textContent = d.month;
@@ -577,11 +591,16 @@
 
       var cat = catById[t.category] || {icon:'•', label:t.category};
       var sign = t.type === 'income' ? '+' : '−';
+      var payNote = '';
+      if (t.type === 'expense' && t.paidWith && t.paidWith !== 'cash') {
+        var payCard = cardById[t.paidWith];
+        payNote = ' · ' + (payCard ? payCard.name : 'карта');
+      }
       return '<div class="tx">' +
         '<div class="tx-icon">'+cat.icon+'</div>' +
         '<div class="tx-body">' +
           '<div class="tx-note">'+(t.note || cat.label)+'</div>' +
-          '<div class="tx-meta">'+cat.label+' · '+dateStr+'</div>' +
+          '<div class="tx-meta">'+cat.label+payNote+' · '+dateStr+'</div>' +
         '</div>' +
         '<div class="tx-amount '+t.type+'">'+sign+fmt(t.amount)+'</div>' +
       '</div>';
@@ -591,12 +610,14 @@
   function openSheet(type){
     state.type = type;
     state.selectedCat = null;
+    state.selectedPay = 'cash';
     var titles = { income: 'Новый доход', expense: 'Новый расход', transfer: 'Погашение кредитки' };
     document.getElementById('sheetTitle').textContent = titles[type];
     document.getElementById('catFieldLabel').textContent = type === 'transfer' ? 'Карта' : 'Категория';
     document.getElementById('catField').style.display = '';
     document.getElementById('noteField').style.display = '';
     document.getElementById('dateField').style.display = '';
+    document.getElementById('payField').style.display = type === 'expense' ? '' : 'none';
     document.getElementById('amountInput').value = '';
     document.getElementById('noteInput').value = '';
     document.getElementById('dateInput').value = new Date().toISOString().slice(0,10);
@@ -618,6 +639,24 @@
         checkValid();
       });
     });
+
+    if (type === 'expense') {
+      var payGrid = document.getElementById('payGrid');
+      var payItems = [{ id: 'cash', icon: '💵', label: 'Наличные' }].concat(
+        (state.data.creditCards || []).map(function(c){ return { id: c.id, icon: '💳', label: c.name }; })
+      );
+      payGrid.innerHTML = payItems.map(function(c){
+        return '<div class="cat-chip'+(c.id==='cash' ? ' selected' : '')+'" data-id="'+c.id+'"><span class="ic">'+c.icon+'</span>'+c.label+'</div>';
+      }).join('');
+      Array.prototype.forEach.call(payGrid.querySelectorAll('.cat-chip'), function(chip){
+        chip.addEventListener('click', function(){
+          Array.prototype.forEach.call(payGrid.querySelectorAll('.cat-chip'), function(c){c.classList.remove('selected');});
+          chip.classList.add('selected');
+          state.selectedPay = chip.getAttribute('data-id');
+        });
+      });
+    }
+
     checkValid();
     document.getElementById('sheetOverlay').classList.add('open');
   }
@@ -632,6 +671,7 @@
     document.getElementById('catField').style.display = 'none';
     document.getElementById('noteField').style.display = 'none';
     document.getElementById('dateField').style.display = 'none';
+    document.getElementById('payField').style.display = 'none';
     document.getElementById('amountInput').value = card.balance;
     document.getElementById('submitBtn').textContent = 'Сохранить';
 
@@ -646,6 +686,7 @@
     document.getElementById('catField').style.display = 'none';
     document.getElementById('noteField').style.display = 'none';
     document.getElementById('dateField').style.display = 'none';
+    document.getElementById('payField').style.display = 'none';
     document.getElementById('amountInput').value = state.data.startBalance;
     document.getElementById('submitBtn').textContent = 'Сохранить';
 
@@ -736,6 +777,7 @@
       newTx.cardId = state.selectedCat;
     } else {
       newTx.category = state.selectedCat;
+      if (state.type === 'expense') newTx.paidWith = state.selectedPay || 'cash';
     }
 
     post({ action: 'addTransaction', transaction: newTx })
